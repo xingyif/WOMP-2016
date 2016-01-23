@@ -2,6 +2,8 @@ package com.example.yifanxing.myapplication;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -11,6 +13,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -21,6 +24,7 @@ import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.util.logging.Logger;
@@ -29,6 +33,7 @@ public class MainActivity extends Activity {
     private static final int OPEN_PHOTO_FOLDER_REQUEST_CODE = 1;  // // TODO: 1/23/16  
     Button button;
     ImageView imageView;
+    String ba1;
     static final int CAM_REQUEST = 1;
 
     Logger mLogger = Logger.getLogger("APP");
@@ -41,6 +46,7 @@ public class MainActivity extends Activity {
         imageView = (ImageView) findViewById(R.id.image_view);
         mLogger.warning("=====  setting up button");
         button.setOnClickListener(new View.OnClickListener() {
+
 
             @Override
             public void onClick(View v) {
@@ -59,13 +65,24 @@ public class MainActivity extends Activity {
 
 
     }
-    String encodedImage = Base64.encodeToString(byteArrayImage, Base64.DEFAULT);
+
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         mLogger.warning("==== Received file: ");
         mLogger.warning("" + getFile().exists());
         imageView.setImageDrawable(Drawable.createFromPath(getFile().getAbsolutePath()));
+        // converst the image to base64
+        Bitmap bm = BitmapFactory.decodeFile(getFile().getAbsolutePath());
+        ByteArrayOutputStream bao = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.JPEG, 90, bao);
+        byte[] ba = bao.toByteArray();
+        ba1 = Base64.encodeToString(ba,Base64.DEFAULT);
+
+        Log.d("encoded", ba1);
     }
+
+
 
 }
 // // TODO: 1/23/16  
