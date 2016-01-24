@@ -167,7 +167,7 @@ public class MainActivity extends Activity {
             return error;
         }
 
-        //@Override
+        @Override
         protected void onPostExecute(JSONObject o){
             Log.d("objects", o.toString());
             JSONArray predictions = o.optJSONArray("predictions");
@@ -184,9 +184,10 @@ public class MainActivity extends Activity {
         final String apiKey = "27ddbb03562b1460fe0d834e0a0c699f";
         @Override
         protected String doInBackground (String...params) {
-            String search = params[0];
+            String foodName = params[0];
+            String search = null;
             try {
-                search = URLEncoder.encode(search, "UTF-8");
+                search = URLEncoder.encode(foodName, "UTF-8");
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
@@ -197,6 +198,14 @@ public class MainActivity extends Activity {
                 response = client.execute(request);
                 String responseData = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
                 Log.d("Response of GET request", responseData);
+                JSONObject jsnobject = new JSONObject(responseData);
+                JSONArray hits = jsnobject.optJSONArray("hits");
+                String hitsString = hits.getString(0);
+                JSONObject fields = new JSONObject(hitsString).getJSONObject("fields");
+                String calories = fields.getString("nf_calories");
+                String fat = fields.getString("nf_total_fat");
+                showCalorieDataDialog(foodName, calories, fat);
+                //Log.d("calorieData", fat);
                 return responseData;
             } catch (ClientProtocolException e) {
                 // TODO Auto-generated catch block
@@ -204,22 +213,42 @@ public class MainActivity extends Activity {
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
 
             return "error";
         }
     }
 
-    //@Override
-    protected void onPostExecute(String s) throws JSONException {
-        //Log.d("objects", o.toString());
-        JSONObject jsnobject = new JSONObject(s);
-        JSONArray jsonCalories = jsnobject.optJSONArray("fields");
-        List<String> calorieData = new ArrayList<>(jsonCalories.length());
-        for (int i = 0; i < jsonCalories.length(); i++) {
-            calorieData.add(jsonCalories.optJSONObject(i).optString("nf_calories"));
-        }
-        //alertSimpleListView(classNames);
+    public void showCalorieDataDialog(final String foodName, final String calories, final String fat){
+        new Thread()
+        {
+            public void run()
+            {
+                MainActivity.this.runOnUiThread(new Runnable()
+                {
+                    public void run()
+                    {
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Eat " + foodName + "?")
+                                .setMessage("Calories: " + calories + "\n" + "Fat: " + fat)
+                                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        // continue with delete
+                                    }
+                                })
+                                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        // do nothing
+                                    }
+                                })
+                                .show();
+                    }
+                });
+            }
+        }.start();
+
     }
 
 }
