@@ -8,30 +8,24 @@
     android:paddingBottom="@dimen/activity_vertical_margin"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
     android:orientation="vertical"
-    >
-    <Button
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:text="Capture Image"
-        android:id="@+id/button"
-        android:layout_gravity="center_horizontal"
-        />
+    android:weightSum="1">
+
 
     <ImageView
-        android:layout_width="350dp"
-        android:layout_height="300dp"
-        android:id="@+id/image_view"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="20dp"
-        />
-    app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context="com.example.yifanxing.myapplication.MainActivity"
-    tools:showIn="@layout/activity_main">
+        android:layout_gravity="center"
+        android:layout_width="300dp"
+        android:layout_height="250dp"
+        tools:src="@drawable/womplogo"
+        android:id="@+id/imageView"
+        android:clickable="true"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Shoot Your Yummy Food" />
+        android:textSize="25dp"
+        android:text="What&apos;s on my plate?"
+        android:textColor="#823D06"
+        android:id="@+id/textView"
+        android:layout_gravity="center_horizontal" />
 </LinearLayout>
