@@ -1,6 +1,8 @@
 package com.example.yifanxing.myapplication;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -26,6 +28,7 @@ import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
 
 import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -34,6 +37,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import android.os.AsyncTask;
@@ -82,10 +87,7 @@ public class MainActivity extends Activity {
     private File getFile() {
         File internalDir = getExternalCacheDir();
         return new File(internalDir, "cam_image.jpg");
-
-
     }
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -103,14 +105,24 @@ public class MainActivity extends Activity {
         new ImageIdentifyer().execute(ba1);
     }
 
+    public void alertSimpleListView(List<String> items) {
+        //list of food items to be shown in alert dialog
+        final String[] array = items.toArray(new String[items.size()]);
 
-    /**
-     * Created by Monsurat on 1/23/2016.
-     */
-    public class ImageIdentifyer extends AsyncTask<String, Void, Object> {
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle("Make your selection");
+        builder.setItems(array, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int item) {
+                Log.d("item", (String) array[item]);
+                dialog.dismiss();
+            }
+        }).show();
+    }
+
+    public class ImageIdentifyer extends AsyncTask<String, Void, JSONObject> {
         private static final String apiKey = "i8w9VkxHx45Sb6JuYUDZWg4CNsOfveZRvz8RuMrjQXMrPcMeTb";
         @Override
-        protected Object doInBackground (String...params){
+        protected JSONObject doInBackground (String...params){
             String image = params[0];
             HttpClient client = new DefaultHttpClient();
             String url = "https://www.metamind.io/vision/classify";
@@ -150,104 +162,15 @@ public class MainActivity extends Activity {
             return error;
         }
 
-        @Override
-        protected void onPostExecute(Object o){
-            Log.d("postrequest",o.toString());
+        //@Override
+        protected void onPostExecute(JSONObject o){
+            Log.d("objects", o.toString());
+            JSONArray predictions = o.optJSONArray("predictions");
+            List<String> classNames = new ArrayList<>(predictions.length());
+            for (int i = 0; i < predictions.length(); i++) {
+                classNames.add(predictions.optJSONObject(i).optString("class_name"));
+            }
+            alertSimpleListView(classNames);
         }
-
-
-
     }
-
-
 }
-// // TODO: 1/23/16  
-//    cam_image.jpg.buildDrawingCache();
-//    Bitmap bmap = profile_image.getDrawingCache();
-//    String encodedImageData =getEncoded64ImageStringFromBitmap(bmap);
-//
-//
-//    public String getEncoded64ImageStringFromBitmap(Bitmap bitmap) {
-//        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-//        bitmap.compress(CompressFormat.JPEG, 70, stream);
-//        byte[] byteFormat = stream.toByteArray();
-//        // get the base 64 string
-//        String imgString = Base64.encodeToString(byteFormat, Base64.NO_WRAP);
-//
-//        return imgString;
-//    }
-
-    // find the pic
-//    public void onEncodeClicked(View view) {
-//
-//        //select picture
-//        Intent intent = new Intent();
-//        intent.setType("image/*");
-//        intent.setAction(Intent.ACTION_GET_CONTENT);
-//        startActivityForResult(intent, OPEN_PHOTO_FOLDER_REQUEST_CODE);
-//    }
-//
-//    @Override
-//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-//        if(OPEN_PHOTO_FOLDER_REQUEST_CODE == requestCode   && RESULT_OK == resultCode) {
-//
-//            //encode the image
-//            Uri uri = data.getData();
-//            try {
-//                //get the image path
-//                String[] projection = {MediaStore.Images.Media.DATA};
-//                CursorLoader cursorLoader = new CursorLoader(this,uri,projection,null,null,null);
-//                Cursor cursor = cursorLoader.loadInBackground();
-//                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-//                cursor.moveToFirst();
-//
-//                String path = cursor.getString(column_index);
-//                Log.d(TAG,"real path: "+path);
-//                encode(path);
-//            } catch (Exception ex) {
-//                Log.e(TAG, "failed." + ex.getMessage());
-//            }
-//        }
-//    }
-//
-//// converts the pic to bitmap
-//    private void encode(String path) {
-//        //decode to bitmap
-//        Bitmap bitmap = BitmapFactory.decodeFile(path);
-//        Log.d(TAG, "bitmap width: " + bitmap.getWidth() + " height: " + bitmap.getHeight());
-//        //convert to byte array
-//        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//        bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
-//        byte[] bytes = baos.toByteArray();
-//
-//        //base64 encode
-//        byte[] encode = Base64.encode(bytes,Base64.DEFAULT);
-//        String encodeString = new String(encode);
-//        mTvShow.setText(encodeString);
-//    }
-//
-//// convert it back to a pic
-//    public void onDecodeClicked(View view) {
-//        byte[] decode = Base64.decode(mTvShow.getText().toString(),Base64.DEFAULT);
-//        Bitmap bitmap = BitmapFactory.decodeByteArray(decode, 0, decode.length);
-//        //save to image on sdcard
-//        saveBitmap(bitmap);
-//    }
-//
-//    private void saveBitmap(Bitmap bitmap) {
-//        try {
-//            String path = Environment.getExternalStorageDirectory().getPath()
-//                    +"/decodeImage.jpg";
-//            Log.d("linc","path is "+path);
-//            OutputStream stream = new FileOutputStream(path);
-//            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream);
-//            stream.close();
-//            Log.e("linc","jpg okay!");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            Log.e("linc","failed: "+e.getMessage());
-//        }
-//    }
-//}
-
