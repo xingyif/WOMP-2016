@@ -27,6 +27,8 @@ import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -37,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -48,6 +51,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -55,8 +59,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 public class MainActivity extends Activity {
-    private static final int OPEN_PHOTO_FOLDER_REQUEST_CODE = 1;  // // TODO: 1/23/16  
-    Button button;
+    private static final int OPEN_PHOTO_FOLDER_REQUEST_CODE = 1;  // // TODO: 1/23/16
     ImageView imageView;
     String ba1;
     static final int CAM_REQUEST = 1;
@@ -67,10 +70,10 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        button = (Button) findViewById(R.id.button);
-        imageView = (ImageView) findViewById(R.id.image_view);
+        imageView = (ImageView) findViewById(R.id.imageView);
         mLogger.warning("=====  setting up button");
-        button.setOnClickListener(new View.OnClickListener() {
+        imageView.setImageResource(R.drawable.womplogo);
+        imageView.setOnClickListener(new View.OnClickListener() {
 
 
             @Override
@@ -102,7 +105,7 @@ public class MainActivity extends Activity {
         ba1 = Base64.encodeToString(ba,Base64.DEFAULT);
 
         Log.d("encoded", ba1);
-        new ImageIdentifyer().execute(ba1);
+        new ImageIdentifier().execute(ba1);
     }
 
     public void alertSimpleListView(List<String> items) {
@@ -113,13 +116,15 @@ public class MainActivity extends Activity {
         builder.setTitle("Make your selection");
         builder.setItems(array, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int item) {
+                String foodChoice = array[item];
                 Log.d("item", (String) array[item]);
+                new getCalories().execute(foodChoice);
                 dialog.dismiss();
             }
         }).show();
     }
 
-    public class ImageIdentifyer extends AsyncTask<String, Void, JSONObject> {
+    public class ImageIdentifier extends AsyncTask<String, Void, JSONObject> {
         private static final String apiKey = "i8w9VkxHx45Sb6JuYUDZWg4CNsOfveZRvz8RuMrjQXMrPcMeTb";
         @Override
         protected JSONObject doInBackground (String...params){
@@ -173,4 +178,48 @@ public class MainActivity extends Activity {
             alertSimpleListView(classNames);
         }
     }
+
+    public class getCalories extends AsyncTask<String, Void, String> {
+        final String appId = "69f1b02f";
+        final String apiKey = "27ddbb03562b1460fe0d834e0a0c699f";
+        @Override
+        protected String doInBackground (String...params) {
+            String search = params[0];
+            try {
+                search = URLEncoder.encode(search, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+            HttpClient client = new DefaultHttpClient();
+            HttpGet request = new HttpGet("https://api.nutritionix.com/v1_1/search/"+search+ "?results=0%3A1&cal_min=0&cal_max=50000&fields=item_name%2Cnf_calories%2Cnf_total_fat&appId=" + appId + "&appKey=" + apiKey);
+            HttpResponse response;
+            try {
+                response = client.execute(request);
+                String responseData = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
+                Log.d("Response of GET request", responseData);
+                return responseData;
+            } catch (ClientProtocolException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            return "error";
+        }
+    }
+
+    //@Override
+    protected void onPostExecute(String s) throws JSONException {
+        //Log.d("objects", o.toString());
+        JSONObject jsnobject = new JSONObject(s);
+        JSONArray jsonCalories = jsnobject.optJSONArray("fields");
+        List<String> calorieData = new ArrayList<>(jsonCalories.length());
+        for (int i = 0; i < jsonCalories.length(); i++) {
+            calorieData.add(jsonCalories.optJSONObject(i).optString("nf_calories"));
+        }
+        //alertSimpleListView(classNames);
+    }
+
 }
