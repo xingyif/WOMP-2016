@@ -40,11 +40,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
 import android.os.AsyncTask;
+import android.widget.TextView;
 
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -59,8 +61,11 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 public class MainActivity extends Activity {
-    private static final int OPEN_PHOTO_FOLDER_REQUEST_CODE = 1;  // // TODO: 1/23/16
+    private static final int OPEN_PHOTO_FOLDER_REQUEST_CODE = 1;
+    double calorieCount = 0.0;
+    TextView textView2;
     ImageView imageView;
+    Button resetButton;
     String ba1;
     static final int CAM_REQUEST = 1;
 
@@ -71,11 +76,12 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         imageView = (ImageView) findViewById(R.id.imageView);
+        textView2 = (TextView) findViewById(R.id.textView2);
+        textView2.setText(calorieCount + " Total Calories");
+        resetButton = (Button) findViewById(R.id.button);
         mLogger.warning("=====  setting up button");
         imageView.setImageResource(R.drawable.womplogo);
         imageView.setOnClickListener(new View.OnClickListener() {
-
-
             @Override
             public void onClick(View v) {
                 mLogger.warning("===== button clicked");
@@ -85,7 +91,16 @@ public class MainActivity extends Activity {
                 startActivityForResult(camera_intent, CAM_REQUEST);
             }
         });
+        resetButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                calorieCount = 0.00;
+                textView2.setText((int) calorieCount + " Total Calories");
+            }
+        });
+
     }
+
 
     private File getFile() {
         File internalDir = getExternalCacheDir();
@@ -96,11 +111,10 @@ public class MainActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         mLogger.warning("==== Received file: ");
         mLogger.warning("" + getFile().exists());
-        imageView.setImageDrawable(Drawable.createFromPath(getFile().getAbsolutePath()));
         // converts the image to base64
         Bitmap bm = BitmapFactory.decodeFile(getFile().getAbsolutePath());
         ByteArrayOutputStream bao = new ByteArrayOutputStream();
-        bm.compress(Bitmap.CompressFormat.JPEG, 90, bao);
+        bm.compress(Bitmap.CompressFormat.JPEG, 50, bao);
         byte[] ba = bao.toByteArray();
         ba1 = Base64.encodeToString(ba,Base64.DEFAULT);
 
@@ -118,8 +132,9 @@ public class MainActivity extends Activity {
             public void onClick(DialogInterface dialog, int item) {
                 String foodChoice = array[item];
                 Log.d("item", (String) array[item]);
-                new getCalories().execute(foodChoice);
                 dialog.dismiss();
+                new getCalories().execute(foodChoice);
+                //dialog.dismiss();
             }
         }).show();
     }
@@ -169,7 +184,7 @@ public class MainActivity extends Activity {
 
         @Override
         protected void onPostExecute(JSONObject o){
-            Log.d("objects", o.toString());
+            //Log.d("objects", o.toString());
             JSONArray predictions = o.optJSONArray("predictions");
             List<String> classNames = new ArrayList<>(predictions.length());
             for (int i = 0; i < predictions.length(); i++) {
@@ -182,6 +197,7 @@ public class MainActivity extends Activity {
     public class getCalories extends AsyncTask<String, Void, String> {
         final String appId = "69f1b02f";
         final String apiKey = "27ddbb03562b1460fe0d834e0a0c699f";
+
         @Override
         protected String doInBackground (String...params) {
             String foodName = params[0];
@@ -192,7 +208,9 @@ public class MainActivity extends Activity {
                 e.printStackTrace();
             }
             HttpClient client = new DefaultHttpClient();
-            HttpGet request = new HttpGet("https://api.nutritionix.com/v1_1/search/"+search+ "?results=0%3A1&cal_min=0&cal_max=50000&fields=item_name%2Cnf_calories%2Cnf_total_fat&appId=" + appId + "&appKey=" + apiKey);
+            HttpGet request = new HttpGet("https://api.nutritionix.com/v1_1/search/"+search
+                    + "?results=0%3A1&cal_min=0&cal_max=50000&fields=item_name%2Cnf_calories%2Cnf_total_fat&appId="
+                    + appId + "&appKey=" + apiKey);
             HttpResponse response;
             try {
                 response = client.execute(request);
@@ -222,6 +240,7 @@ public class MainActivity extends Activity {
     }
 
     public void showCalorieDataDialog(final String foodName, final String calories, final String fat){
+        final DecimalFormat df2 = new DecimalFormat(".##");
         new Thread()
         {
             public void run()
@@ -232,15 +251,21 @@ public class MainActivity extends Activity {
                     {
                         new AlertDialog.Builder(MainActivity.this)
                                 .setTitle("Eat " + foodName + "?")
-                                .setMessage("Calories: " + calories + "\n" + "Fat: " + fat)
+                                .setMessage("Calories: " + calories + "\n" + "Fat: " + fat + "grams")
                                 .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
-                                        // continue with delete
+                                        //add calorie to calorieCount
+                                        calorieCount = calorieCount + Double.parseDouble(calories);
+                                        System.out.println(calorieCount);
+                                        //double calorieCount= %.2e;
+                                        //textView2.setText(String.format( "%.2f", calorieCount ));
+                                        textView2.setText(df2.format(calorieCount) + " Total Calories");
+                                        dialog.dismiss();
                                     }
                                 })
                                 .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
-                                        // do nothing
+                                        //do nothing
                                     }
                                 })
                                 .show();
